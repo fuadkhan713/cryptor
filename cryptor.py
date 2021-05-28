@@ -180,17 +180,16 @@ def client_program(port=5000, outfile=None):
     server_socket.bind((host, int(port)))
     server_socket.listen(500)
     data_to_file = b''
-
+    conn, address = server_socket.accept()
+    print("[*] Client Started as {}:{}".format(host, port))
+    print("[*] Connection from: " + str(address))
+    print("[*] Receiving File...")
     while True:
-        conn, address = server_socket.accept()
-        print("[*] Client Started as {}:{}".format(host, port))
-        print("[*] Connection from: " + str(address))
-        print("[*] Receiving File...")
         data = conn.recv(1024)
         data_to_file = data_to_file + data
         if not data:
             print("[*] Checking Received File HASH")
-            print("[*] File Hash: {}".formnat(data_to_file[:32]))
+            print("[*] File Hash: {}".format(data_to_file[:32]))
             print("[*] Received File Hash: {}".format(bytes(hashlib.md5(data_to_file[32:]).hexdigest(), 'utf8')))
             if data_to_file[:32] == bytes(hashlib.md5(data_to_file[32:]).hexdigest(), 'utf8'):
                 print("[*] Hash Matched")
@@ -203,7 +202,10 @@ def client_program(port=5000, outfile=None):
                 print("[*] File is written to {}".format(os.path.abspath("./" + outfile)))
                 break
             else:
+                conn, address = server_socket.accept()
                 print("[*] File Not Received Properly. Trying to Receive Again..Please wait")
+                print("[*] Connection from: " + str(address))
+                print("[*] Receiving File...")
                 conn.close()
                 data_to_file = b''
 
