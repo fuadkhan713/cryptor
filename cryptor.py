@@ -180,10 +180,10 @@ def client_program(port=5000, outfile=None):
     server_socket.bind((host, int(port)))
     server_socket.listen(500)
     data_to_file = b''
-    conn, address = server_socket.accept()
     print("[*] Client Started as {}:{}".format(host, port))
     print("[*] Connection from: " + str(address))
     print("[*] Receiving File...")
+    conn, address = server_socket.accept()
     while True:
         data = conn.recv(1024)
         data_to_file = data_to_file + data
