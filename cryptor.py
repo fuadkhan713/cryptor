@@ -9,7 +9,7 @@ from torpy import TorClient
 import socket
 import hashlib
 
-# setting max file size to 4 GB
+# setting max file size to 4 GB or (4 * 1024 * 1024 * 1024) Bytes
 
 
 MAX_FILE_SIZE = 4 * 1024 * 1024 * 1024
@@ -31,8 +31,6 @@ def gen_key(key_size=2048):
     try:
         private_file = open("private.key", "wb+")
         pub_file = open("pub.key", "wb+")
-        print("""[*] Written To file.......... "{}" and "{}" """.format(os.path.abspath("private.key"),
-                                                                        os.path.abspath("pub.key")))
         private_file.write(private_key)
         pub_file.write(public_key)
         print("""[*] DONE""")
@@ -44,6 +42,8 @@ def gen_key(key_size=2048):
     # print private and public key to the console
     print(private_key.decode('utf8'))
     print(public_key.decode('utf8'))
+    print("""[*] Written To file.......... "{}" and "{}" """.format(os.path.abspath("private.key"),
+                                                                    os.path.abspath("pub.key")))
 
 
 # Helper functions for encryption process
@@ -147,8 +147,7 @@ def decrypt_data(filename, key):
 
 def send_file(host, port, filename, circuit_no=3):
     file_to_send = open(filename, 'rb').read()
-    print("[*] Sending File with File md5 : ", end="")
-    print(bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'))
+    print("[*] Sending File with File md5 {}: ".format(bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8')))
 
     print("[*] Please wait. Trying to send....")
     try:
@@ -156,9 +155,11 @@ def send_file(host, port, filename, circuit_no=3):
             with tor.create_circuit(circuit_no) as circuit:
                 with circuit.create_stream((host, port)) as stream:
                     # Now we can try to communicate with host
-                    stream.send(bytes(hashlib.md5(file_to_send).hexdigest(),'utf8')+ file_to_send)
+                    stream.send(bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8') + file_to_send)
                     data = stream.recv(32)
-        if data == bytes(hashlib.md5(file_to_send).hexdigest(),'utf8'):
+        if data == bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'):
+            print(bytes(hashlib.md5(file_to_send).hexdigest()))
+            print(data)
             print("[*] Data Sent")
         else:
             print("[*] Trying to send the data again. Enter Ctrl+C to Exit.")
@@ -168,49 +169,43 @@ def send_file(host, port, filename, circuit_no=3):
         print("[*] Trying to send the data again. Enter Ctrl+C to Exit.")
         send_file(host, port, filename)
 
+
 # Function to receive the data
 
 def client_program(port=5000, outfile=None):
+    if outfile is None:
+        outfile = "data.file"
     host = '0.0.0.0'
-    server_socket = socket.socket()  # get instance
-    # look closely. The bind() function takes tuple as argument
-    server_socket.bind((host, int(port)))  # bind host address and port together
-    # configure how many client the server can listen simultaneously
+    server_socket = socket.socket()
+    server_socket.bind((host, int(port)))
     server_socket.listen(500)
-
     data_to_file = b''
-    print("[*] Client Started as {}:{}".format(host, port))
-    conn, address = server_socket.accept()
-    print("[*] Connection from: " + str(address))
+
     while True:
-        # receive data stream. it won't accept data packet greater than 1024 bytes
+        conn, address = server_socket.accept()
+        print("[*] Client Started as {}:{}".format(host, port))
+        print("[*] Connection from: " + str(address))
+        print("[*] Receiving File...")
         data = conn.recv(1024)
         data_to_file = data_to_file + data
         if not data:
-            if outfile is None:
-                outfile = "data.file"
             print("[*] Checking Received File HASH")
-            print("[*] File Hash: ", end="")
-            print(data_to_file[:32])
-            print("[*] Received File Hash: ", end="")
-            print(bytes(hashlib.md5(data_to_file[32:]).hexdigest(), 'utf8'))
+            print("[*] File Hash: {}".formnat(data_to_file[:32]))
+            print("[*] Received File Hash: {}".format(bytes(hashlib.md5(data_to_file[32:]).hexdigest(), 'utf8')))
             if data_to_file[:32] == bytes(hashlib.md5(data_to_file[32:]).hexdigest(), 'utf8'):
                 print("[*] Hash Matched")
-                print("[*] File Received Successfully")
                 file_to_write = open("data.file", 'wb+')
                 file_to_write.write(data_to_file)
                 file_to_write.close()
                 conn.send(data_to_file[:32])
                 conn.close()
+                print("[*] File Received Successfully")
                 print("[*] File is written to {}".format(os.path.abspath("./" + outfile)))
                 break
             else:
-                print("[*] File Not Received Properly. Trying to Receive Again")
-                data_to_file = b''
+                print("[*] File Not Received Properly. Trying to Receive Again..Please wait")
                 conn.close()
-                conn, address = server_socket.accept()
-                print("[*] Connection from: " + str(address))
-
+                data_to_file = b''
 
 
 # Create a Method to Parse Options by Argument
