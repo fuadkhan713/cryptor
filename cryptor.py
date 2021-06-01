@@ -8,11 +8,13 @@ from argparse import RawTextHelpFormatter
 from torpy import TorClient
 import socket
 import hashlib
+from torpy.utils import retry
 
 # setting max file size to 4 GB or (4 * 1024 * 1024 * 1024) Bytes
 
 
 MAX_FILE_SIZE = 4 * 1024 * 1024 * 1024
+RETRIES = 10
 
 
 def gen_key(key_size=2048):
@@ -144,7 +146,7 @@ def decrypt_data(filename, key):
 
 # Function to Send the Data over Hidden Network
 
-
+@retry(RETRIES, (TimeoutError, ConnectionError,))
 def send_file(host, port, filename, circuit_no=3):
     file_to_send = open(filename, 'rb').read()
     print("[*] Sending File with File md5 {}: ".format(bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8')))
@@ -156,18 +158,8 @@ def send_file(host, port, filename, circuit_no=3):
                 with circuit.create_stream((host, port)) as stream:
                     # Now we can try to communicate with host
                     stream.send(b'' + file_to_send + bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'))
-                    while True:
-                        recv_hash = stream.recv(32)
-                        print(recv_hash)
-                        if 32 == len(recv_hash):
-                            break
-                    print(bytes(hashlib.md5(file_to_send).hexdigest()))
-                    print(recv_hash)
-        if hash == bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'):
-            print("[*] Data Sent")
-        else:
-            print("[*] Trying to send the data again. Enter Ctrl+C to Exit.")
-            send_file(host, port, filename)
+                    print("[*] Data Sent")
+
     except Exception as e:
         print(e)
         print("[*] Trying to send the data again. Enter Ctrl+C to Exit.")
@@ -176,7 +168,8 @@ def send_file(host, port, filename, circuit_no=3):
 
 # Function to receive the data
 
-def client_program(port=5000, outfile=None):
+
+def client_program(port=443, outfile=None):
     if outfile is None:
         outfile = "data.file"
     host = '0.0.0.0'
@@ -185,9 +178,9 @@ def client_program(port=5000, outfile=None):
     server_socket.listen(500)
     data_to_file = b''
     print("[*] Client Started as {}:{}".format(host, port))
-    print("[*] Receiving File...")
     conn, address = server_socket.accept()
     print("[*] Connection from: " + str(address))
+    print("[*] Receiving File...")
     while True:
         data = conn.recv(1024)
         data_to_file = data_to_file + data
@@ -202,13 +195,12 @@ def client_program(port=5000, outfile=None):
                 file_to_write.close()
                 print("[*] File Received Successfully")
                 print("[*] File is written to {}".format(os.path.abspath("./" + outfile)))
-                conn.send(data_to_file[-32:])
                 conn.close()
                 break
             else:
+                print("[*] File Not Received Properly. Trying to Receive Again..Please wait")
                 conn.close()
                 conn, address = server_socket.accept()
-                print("[*] File Not Received Properly. Trying to Receive Again..Please wait")
                 print("[*] Connection from: " + str(address))
                 print("[*] Receiving File...")
                 data_to_file = b''
@@ -226,11 +218,11 @@ parser = argparse.ArgumentParser("cryptor.py",
 
                                               'Send File Via Hidden Network: \n'
                                               '\tpython3 cryptor.py --m send --file test.txt --host google.com --port '
-                                              '80\n'
+                                              '443\n'
 
 
                                               'Create a Client to Receive From a Network:\n'
-                                              '\tpython3 cryptor.py --m client --port 5000 --file to_file\n\n\n'
+                                              '\tpython3 cryptor.py --m client --port 443 --file to_file\n\n\n'
                                               'IMPORTANT NOTES AND BUGS:\n'
                                               '\t1. MAIN FILE WILL BE DELETED AFTER ENCRYPTION.\n'
                                               '\t2. ENCRYPTED FILE WILL BE DELETED AFTER DECRYPTION.\n'

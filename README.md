@@ -11,9 +11,9 @@ Description: Script to Help Encrypt and Decrypt File Using RSA Key.
         python3 cryptor.py --m gen --keySize=2048
 
 Send File Via Hidden Network:
-        python3 cryptor.py --m send --file test.txt --host google.com --port 80
+        python3 cryptor.py --m send --file test.txt --host google.com --port 443
 Create a Client to Receive From a Network:
-        python3 cryptor.py --m client --port 5000 --file to_file
+        python3 cryptor.py --m client --port 443 --file to_file
 
 IMPORTANT NOTES AND BUGS:
         1. MAIN FILE WILL BE DELETED AFTER ENCRYPTION.
@@ -24,7 +24,7 @@ IMPORTANT NOTES AND BUGS:
 optional arguments:
   -h, --help            show this help message and exit
   --m {enc,dec,gen,send,client}
-                        Mode for operation [enc]/[dec]/[gen]/[send]/[server]
+                        Mode for operation [enc]/[dec]/[gen]/[send]/[client]
   --file FILE           File to encrypt/decrypt
   --key KEY             Key to encrypt/decrypt
   --keySize {512,1024,2048,4096}
