@@ -206,11 +206,11 @@ def client_program(port=5000, outfile=None):
                 conn.close()
                 break
             else:
+                conn.close()
                 conn, address = server_socket.accept()
                 print("[*] File Not Received Properly. Trying to Receive Again..Please wait")
                 print("[*] Connection from: " + str(address))
                 print("[*] Receiving File...")
-                conn.close()
                 data_to_file = b''
 
 
