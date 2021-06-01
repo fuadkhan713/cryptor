@@ -155,11 +155,15 @@ def send_file(host, port, filename, circuit_no=3):
             with tor.create_circuit(circuit_no) as circuit:
                 with circuit.create_stream((host, port)) as stream:
                     # Now we can try to communicate with host
-                    stream.send(bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8') + file_to_send)
-                    data = stream.recv(32)
-        if data == bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'):
-            print(bytes(hashlib.md5(file_to_send).hexdigest()))
-            print(data)
+                    stream.send(b'' + file_to_send + bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'))
+                    while True:
+                        recv_hash = stream.recv(32)
+                        print(recv_hash)
+                        if 32 == len(recv_hash):
+                            break
+                    print(bytes(hashlib.md5(file_to_send).hexdigest()))
+                    print(recv_hash)
+        if hash == bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'):
             print("[*] Data Sent")
         else:
             print("[*] Trying to send the data again. Enter Ctrl+C to Exit.")
@@ -189,17 +193,17 @@ def client_program(port=5000, outfile=None):
         data_to_file = data_to_file + data
         if not data:
             print("[*] Checking Received File HASH")
-            print("[*] File Hash: {}".format(data_to_file[:32]))
-            print("[*] Received File Hash: {}".format(bytes(hashlib.md5(data_to_file[32:]).hexdigest(), 'utf8')))
-            if data_to_file[:32] == bytes(hashlib.md5(data_to_file[32:]).hexdigest(), 'utf8'):
+            print("[*] File Hash: {}".format(data_to_file[-32:]))
+            print("[*] Received File Hash: {}".format(bytes(hashlib.md5(data_to_file[:-32]).hexdigest(), 'utf8')))
+            if data_to_file[-32:] == bytes(hashlib.md5(data_to_file[:-32]).hexdigest(), 'utf8'):
                 print("[*] Hash Matched")
                 file_to_write = open("data.file", 'wb+')
-                file_to_write.write(data_to_file)
+                file_to_write.write(data_to_file[:-32])
                 file_to_write.close()
-                conn.send(data_to_file[:32])
-                conn.close()
                 print("[*] File Received Successfully")
                 print("[*] File is written to {}".format(os.path.abspath("./" + outfile)))
+                conn.send(data_to_file[-32:])
+                conn.close()
                 break
             else:
                 conn, address = server_socket.accept()
