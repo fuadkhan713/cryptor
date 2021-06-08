@@ -1,19 +1,19 @@
 <pre>
-<b>Install dependency:</b>
-    pip install -r requirements.txt
+<b>Install:</b>
+    pip install filecrypter
 
-usage: cryptor.py [-h] [--m {enc,dec,gen,send,client}] [--file FILE] [--key KEY] [--keySize {512,1024,2048,4096}] [--host HOST] [--port PORT] [--c C]
+usage: python -m filecrypter [-h] [--m {enc,dec,gen,send,client}] [--file FILE] [--key KEY] [--keySize {512,1024,2048,4096}] [--host HOST] [--port PORT] [--c C]
 
 Description: Script to Help Encrypt and Decrypt File Using RSA Key.
 
-        python3 cryptor.py --m enc --file=test.txt --key=pub.key
-        python3 cryptor.py --m dec --file=test.txt.enc --key=private.key
-        python3 cryptor.py --m gen --keySize=2048
+        python -m filecrypter --m enc --file=test.txt --key=pub.key
+        python -m filecrypter --m dec --file=test.txt.enc --key=private.key
+        python -m filecrypter --m gen --keySize=2048
 
 Send File Via Hidden Network:
-        python3 cryptor.py --m send --file test.txt --host google.com --port 443
+        python -m filecrypter --m send --file test.txt --host google.com --port 443
 Create a Client to Receive From a Network:
-        python3 cryptor.py --m client --port 443 --file to_file
+        python -m filecrypter --m client --port 443 --file to_file
 
 IMPORTANT NOTES AND BUGS:
         1. MAIN FILE WILL BE DELETED AFTER ENCRYPTION.
@@ -32,5 +32,6 @@ optional arguments:
   --host HOST           Host to send file
   --port PORT           Port to remote host
   --c C                 Num of tor circuit to create While sending file Default(3)
+
 
 </pre>

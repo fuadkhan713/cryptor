@@ -209,71 +209,76 @@ def client_program(port=443, outfile=None):
 # Create a Method to Parse Options by Argument
 
 
-parser = argparse.ArgumentParser("cryptor.py",
-                                 description=('Description: Script to Help Encrypt and Decrypt File Using RSA Key.'
-                                              '\n\n'
-                                              '\tpython3 cryptor.py --m enc --file=test.txt --key=pub.key\n'
-                                              '\tpython3 cryptor.py --m dec --file=test.txt.enc --key=private.key\n'
-                                              '\tpython3 cryptor.py --m gen --keySize=2048\n\n'
+def main():
+    parser = argparse.ArgumentParser("filecryptor",
+                                     description=('Description: Script to Help Encrypt and Decrypt File Using RSA Key.'
+                                                  '\n\n'
+                                                  '\tpython -m filecryptor --m enc --file=test.txt --key=pub.key\n'
+                                                  '\tpython -m filecryptor --m dec --file=test.txt.enc --key=private.key\n'
+                                                  '\tpython -m filecryptor --m gen --keySize=2048\n\n'
 
-                                              'Send File Via Hidden Network: \n'
-                                              '\tpython3 cryptor.py --m send --file test.txt --host google.com --port '
-                                              '443\n'
+                                                  'Send File Via Hidden Network: \n'
+                                                  '\tpython -m filecryptor --m send --file test.txt --host google.com --port '
+                                                  '443\n'
 
 
-                                              'Create a Client to Receive From a Network:\n'
-                                              '\tpython3 cryptor.py --m client --port 443 --file to_file\n\n\n'
-                                              'IMPORTANT NOTES AND BUGS:\n'
-                                              '\t1. MAIN FILE WILL BE DELETED AFTER ENCRYPTION.\n'
-                                              '\t2. ENCRYPTED FILE WILL BE DELETED AFTER DECRYPTION.\n'
-                                              '\t3. MAXIMUM FILE SIZE IS 4GB. THIS LIMIT ALSO DEPENDS ON SYSTEM RAM.'
-                                              '\n\t   MIGHT NOT WORK WITH LESS RAM. DONT WORRY FILE WONT '
-                                              'BE DELETED IF FAILED.'
-                                              '\n\n'), formatter_class=RawTextHelpFormatter)
-parser.add_argument("--m", help="Mode for operation [enc]/[dec]/[gen]/[send]/[client]", type=str,
-                    choices=['enc', 'dec', 'gen', 'send', 'client'])
-parser.add_argument("--file", help="File to encrypt/decrypt", type=str)
-parser.add_argument("--key", help="Key to encrypt/decrypt", type=str)
-parser.add_argument("--keySize", help="Key size default is 2048 bit", type=int, choices=[512, 1024, 2048, 4096],
-                    default=2048)
-parser.add_argument("--host", help="Host to send file", type=str)
-parser.add_argument("--port", help="Port to remote host ", type=str)
-parser.add_argument("--c", help="Num of tor circuit to create While sending file Default(3)", type=int)
+                                                  'Create a Client to Receive From a Network:\n'
+                                                  '\tpython -m filecryptor --m client --port 443 --file to_file\n\n\n'
+                                                  'IMPORTANT NOTES AND BUGS:\n'
+                                                  '\t1. MAIN FILE WILL BE DELETED AFTER ENCRYPTION.\n'
+                                                  '\t2. ENCRYPTED FILE WILL BE DELETED AFTER DECRYPTION.\n'
+                                                  '\t3. MAXIMUM FILE SIZE IS 4GB. THIS LIMIT ALSO DEPENDS ON SYSTEM RAM.'
+                                                  '\n\t   MIGHT NOT WORK WITH LESS RAM. DONT WORRY FILE WONT '
+                                                  'BE DELETED IF FAILED.'
+                                                  '\n\n'), formatter_class=RawTextHelpFormatter)
+    parser.add_argument("--m", help="Mode for operation [enc]/[dec]/[gen]/[send]/[client]", type=str,
+                        choices=['enc', 'dec', 'gen', 'send', 'client'])
+    parser.add_argument("--file", help="File to encrypt/decrypt", type=str)
+    parser.add_argument("--key", help="Key to encrypt/decrypt", type=str)
+    parser.add_argument("--keySize", help="Key size default is 2048 bit", type=int, choices=[512, 1024, 2048, 4096],
+                        default=2048)
+    parser.add_argument("--host", help="Host to send file", type=str)
+    parser.add_argument("--port", help="Port to remote host ", type=str)
+    parser.add_argument("--c", help="Num of tor circuit to create While sending file Default(3)", type=int)
 
-args = parser.parse_args()
-if args.m == 'enc':
-    if not args.file or not args.key:
-        print('Need --file and --key args for encrypt data')
-    else:
-        encrypt_data(args.file, args.key)
-elif args.m == 'dec':
-    if not args.file or not args.key:
-        print('Need --file and --key args for decrypt data')
-    else:
-        decrypt_data(args.file, args.key)
-elif args.m == 'gen':
-    if not args.keySize:
-        print("""Generating 2048 bit 'private.key' and 'pub.key' File """)
-        gen_key()
-    else:
-
-        gen_key(args.keySize)
-elif args.m == 'send':
-    if not args.file or not args.host or not args.port:
-        print('Need --file and --host and --port to send data')
-    else:
-        if not args.c:
-            send_file(args.host, args.port, args.file)
+    args = parser.parse_args()
+    if args.m == 'enc':
+        if not args.file or not args.key:
+            print('Need --file and --key args for encrypt data')
         else:
-            send_file(args.host, args.port, args.file, args.c)
-elif args.m == 'client':
-    if not args.port and args.file:
-        client_program(outfile=args.file)
-    elif args.port and not args.file:
-        client_program(port=args.port)
-    elif args.port and args.file:
-        client_program(port=args.port, outfile=args.file)
+            encrypt_data(args.file, args.key)
+    elif args.m == 'dec':
+        if not args.file or not args.key:
+            print('Need --file and --key args for decrypt data')
+        else:
+            decrypt_data(args.file, args.key)
+    elif args.m == 'gen':
+        if not args.keySize:
+            print("""Generating 2048 bit 'private.key' and 'pub.key' File """)
+            gen_key()
+        else:
+
+            gen_key(args.keySize)
+    elif args.m == 'send':
+        if not args.file or not args.host or not args.port:
+            print('Need --file and --host and --port to send data')
+        else:
+            if not args.c:
+                send_file(args.host, args.port, args.file)
+            else:
+                send_file(args.host, args.port, args.file, args.c)
+    elif args.m == 'client':
+        if not args.port and args.file:
+            client_program(outfile=args.file)
+        elif args.port and not args.file:
+            client_program(port=args.port)
+        elif args.port and args.file:
+            client_program(port=args.port, outfile=args.file)
+        else:
+            client_program()
     else:
-        client_program()
-else:
-    print("Please Run 'python3 crypto.py --help' to Check Commands")
+        print("Please Run 'python -m filecryptor --help' to Check Commands")
+
+
+if __name__ == '__main__':
+    main()

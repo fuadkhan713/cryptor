@@ -1,3 +1,4 @@
 ###### Requirements without Version Specifiers ######
 pycryptodome
-torpy
+torpy~=1.1.6
+setuptools~=52.0.0
