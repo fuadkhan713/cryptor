@@ -2,18 +2,19 @@
 <b>Install:</b>
     pip install filecrypter
 
-usage: python -m filecrypter [-h] [--m {enc,dec,gen,send,client}] [--file FILE] [--key KEY] [--keySize {512,1024,2048,4096}] [--host HOST] [--port PORT] [--c C]
+usage: filecryptor [-h] [--m {enc,dec,gen,send,client}] [--file FILE] [--key KEY] [--keySize {512,1024,2048,4096}] [--link LINK] [--port PORT] [--c C]
 
 Description: Script to Help Encrypt and Decrypt File Using RSA Key.
 
-        python -m filecrypter --m enc --file=test.txt --key=pub.key
-        python -m filecrypter --m dec --file=test.txt.enc --key=private.key
-        python -m filecrypter --m gen --keySize=2048
+        python -m filecryptor --m enc --file=test.txt --key=pub.key
+        python -m filecryptor --m dec --file=test.txt.enc --key=private.key
+        python -m filecryptor --m gen --keySize=2048
 
 Send File Via Hidden Network:
-        python -m filecrypter --m send --file test.txt --host google.com --port 443
+Link Needs to be starts with [https://]
+        python -m filecrypter --m send --file test.txt --link https://[HOST_IP]:443 --c 4
 Create a Client to Receive From a Network:
-        python -m filecrypter --m client --port 443 --file to_file
+        python -m filecryptor --m client --port 443 --file to_file
 
 IMPORTANT NOTES AND BUGS:
         1. MAIN FILE WILL BE DELETED AFTER ENCRYPTION.
@@ -29,8 +30,8 @@ optional arguments:
   --key KEY             Key to encrypt/decrypt
   --keySize {512,1024,2048,4096}
                         Key size default is 2048 bit
-  --host HOST           Host to send file
-  --port PORT           Port to remote host
+  --link LINK           Link to send file
+  --port PORT           Port to start the client Default(443)
   --c C                 Num of tor circuit to create While sending file Default(3)
 
 

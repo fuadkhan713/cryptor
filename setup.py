@@ -22,7 +22,7 @@ def main():
             'Topic :: System :: Networking',
 
         ],
-        install_requires=['pycryptodome', 'torpy'],
+        install_requires=['pycryptodome', 'torpy', 'flask', 'requests', 'urllib3'],
         py_modules=["filecrypter"],
         python_requires='>=3.7',
         project_urls={

@@ -5,16 +5,31 @@ import struct as st
 import argparse
 import os
 from argparse import RawTextHelpFormatter
-from torpy import TorClient
-import socket
 import hashlib
-from torpy.utils import retry
+from io import StringIO
+import json
+from flask import Flask, request
+import base64
+from contextlib import contextmanager
+from torpy.http.requests import TorRequests
+from requests import Request
+from urllib3.util import SKIP_HEADER
+import logging
+
+# stop flask log
+
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 # setting max file size to 4 GB or (4 * 1024 * 1024 * 1024) Bytes
 
 
 MAX_FILE_SIZE = 4 * 1024 * 1024 * 1024
 RETRIES = 10
+
+# Create A flask app for client
+app = Flask("filecrypter")
 
 
 def gen_key(key_size=2048):
@@ -144,66 +159,80 @@ def decrypt_data(filename, key):
         print(e)
 
 
+# File Sender Helper
+@contextmanager
+def tor_requests_session(hops_count=3, headers=None, auth_data=None, retries=0):
+    with TorRequests(hops_count, headers, auth_data) as tr:
+        with tr.get_session(retries=retries) as s:
+            yield s
+
+
+def do_request(url, method='GET', data=None, headers=None, hops=3, auth_data=None, retries=0):
+    with tor_requests_session(hops, auth_data, retries=retries) as s:
+        headers = dict(headers or [])
+        if SKIP_HEADER and \
+                'user-agent' not in (k.lower() for k in headers.keys()):
+            headers['User-Agent'] = SKIP_HEADER
+        response = Request(method, url, data=data, headers=headers)
+        response = s.send(response.prepare(), verify=False)
+        return response.text
+
+
+def send(link, data, retry_number=15, num_hops=4):
+    json_formatted_data = json.dumps({
+        'file': str(base64.b64encode(data))[2:-1],
+        'hash': hashlib.md5(data).hexdigest()
+    })
+    payload = {'data': json_formatted_data}
+    return do_request(link, method='POST', data=payload, retries=retry_number, hops=num_hops)
+
+
 # Function to Send the Data over Hidden Network
 
-@retry(RETRIES, (TimeoutError, ConnectionError,))
-def send_file(host, port, filename, circuit_no=3):
+
+def send_file(link, filename, circuit_no=3):
     file_to_send = open(filename, 'rb').read()
-    print("[*] Sending File with File md5 {}: ".format(bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8')))
-
-    print("[*] Please wait. Trying to send....")
-    try:
-        with TorClient() as tor:
-            with tor.create_circuit(circuit_no) as circuit:
-                with circuit.create_stream((host, port)) as stream:
-                    # Now we can try to communicate with host
-                    stream.send(b'' + file_to_send + bytes(hashlib.md5(file_to_send).hexdigest(), 'utf8'))
-                    print("[*] Data Sent")
-
-    except Exception as e:
-        print(e)
-        print("[*] Trying to send the data again. Enter Ctrl+C to Exit.")
-        send_file(host, port, filename)
+    response = send(link + '/post', file_to_send, retry_number=15, num_hops=circuit_no)
+    io = StringIO(response)
+    print("[*] File Sent, Checking Hash....")
+    receiver_file_hash = json.load(io)['hash']
+    sender_file_hash = hashlib.md5(file_to_send).hexdigest()
+    print('[*] Sent File Hash: {}'.format(sender_file_hash))
+    print('[*] Receiver File Hash: {}'.format(receiver_file_hash))
+    if receiver_file_hash == sender_file_hash:
+        print('[*] File Sent Successfully. ')
+    else:
+        print('[*] Please Resent The Data. ')
 
 
 # Function to receive the data
 
-
 def client_program(port=443, outfile=None):
     if outfile is None:
         outfile = "data.file"
-    host = '0.0.0.0'
-    server_socket = socket.socket()
-    server_socket.bind((host, int(port)))
-    server_socket.listen(500)
-    data_to_file = b''
-    print("[*] Client Started as {}:{}".format(host, port))
-    conn, address = server_socket.accept()
-    print("[*] Connection from: " + str(address))
-    print("[*] Receiving File...")
-    while True:
-        data = conn.recv(1024)
-        data_to_file = data_to_file + data
-        if not data:
-            print("[*] Checking Received File HASH")
-            print("[*] File Hash: {}".format(data_to_file[-32:]))
-            print("[*] Received File Hash: {}".format(bytes(hashlib.md5(data_to_file[:-32]).hexdigest(), 'utf8')))
-            if data_to_file[-32:] == bytes(hashlib.md5(data_to_file[:-32]).hexdigest(), 'utf8'):
-                print("[*] Hash Matched")
-                file_to_write = open("data.file", 'wb+')
-                file_to_write.write(data_to_file[:-32])
-                file_to_write.close()
+
+    @app.route('/post', methods=['POST'])
+    def get_file():
+        if request.method == 'POST':
+            print('[*] Receive Request From IP: {}'.format(request.remote_addr))
+            data = StringIO(request.form['data'])
+            data = json.load(data)
+            file_hash = data['hash']
+            downloaded_file = base64.b64decode(data['file'])
+            downloaded_file_hash = hashlib.md5(downloaded_file).hexdigest()
+            print("[*] File Hash: {}".format(file_hash))
+            print("[*] Received File Hash: {}".format(downloaded_file_hash))
+            if downloaded_file_hash == file_hash:
                 print("[*] File Received Successfully")
                 print("[*] File is written to {}".format(os.path.abspath("./" + outfile)))
-                conn.close()
-                break
+                file_to_write = open(outfile, 'wb+')
+                file_to_write.write(downloaded_file)
+                file_to_write.close()
             else:
-                print("[*] File Not Received Properly. Trying to Receive Again..Please wait")
-                conn.close()
-                conn, address = server_socket.accept()
-                print("[*] Connection from: " + str(address))
-                print("[*] Receiving File...")
-                data_to_file = b''
+                print("File Hash Not Matched. Trying to Receive Again Don't Close The Program")
+            return json.dumps({"hash": downloaded_file_hash})
+
+    app.run(debug=False, host='0.0.0.0', port=port, ssl_context='adhoc')
 
 
 # Create a Method to Parse Options by Argument
@@ -218,8 +247,9 @@ def main():
                                                   '\tpython -m filecryptor --m gen --keySize=2048\n\n'
 
                                                   'Send File Via Hidden Network: \n'
-                                                  '\tpython -m filecryptor --m send --file test.txt --host google.com --port '
-                                                  '443\n'
+                                                  'Link Needs to be starts with [https://]\n'
+                                                  '\tpython -m filecrypter --m send --file test.txt --link https://[HOST_IP]:443 --c 4'
+                                                  '\n'
 
 
                                                   'Create a Client to Receive From a Network:\n'
@@ -237,8 +267,8 @@ def main():
     parser.add_argument("--key", help="Key to encrypt/decrypt", type=str)
     parser.add_argument("--keySize", help="Key size default is 2048 bit", type=int, choices=[512, 1024, 2048, 4096],
                         default=2048)
-    parser.add_argument("--host", help="Host to send file", type=str)
-    parser.add_argument("--port", help="Port to remote host ", type=str)
+    parser.add_argument("--link", help="Link to send file", type=str)
+    parser.add_argument("--port", help="Port to start the client Default(443)", type=str)
     parser.add_argument("--c", help="Num of tor circuit to create While sending file Default(3)", type=int)
 
     args = parser.parse_args()
@@ -260,13 +290,13 @@ def main():
 
             gen_key(args.keySize)
     elif args.m == 'send':
-        if not args.file or not args.host or not args.port:
-            print('Need --file and --host and --port to send data')
+        if not args.file or not args.link or args.port:
+            print('Need --file and --link to send data use port with link as below:\nhttps://[HOST_IP]:443')
         else:
             if not args.c:
-                send_file(args.host, args.port, args.file)
+                send_file(args.link, args.file)
             else:
-                send_file(args.host, args.port, args.file, args.c)
+                send_file(args.link, args.file, args.c)
     elif args.m == 'client':
         if not args.port and args.file:
             client_program(outfile=args.file)

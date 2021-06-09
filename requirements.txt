@@ -2,3 +2,6 @@
 pycryptodome
 torpy~=1.1.6
 setuptools~=52.0.0
+flask~=2.0.1
+requests~=2.25.1
+urllib3~=1.26.5
