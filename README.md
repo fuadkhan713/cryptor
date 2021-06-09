@@ -11,7 +11,7 @@ Description: Script to Help Encrypt and Decrypt File Using RSA Key.
         python -m filecryptor --m gen --keySize=2048
 
 Send File Via Hidden Network:
-Link Needs to be starts with [https://]
+Link Needs to be Start With [https://]
         python -m filecrypter --m send --file test.txt --link https://[HOST_IP]:443 --c 4
 Create a Client to Receive From a Network:
         python -m filecryptor --m client --port 443 --file to_file

@@ -247,7 +247,7 @@ def main():
                                                   '\tpython -m filecryptor --m gen --keySize=2048\n\n'
 
                                                   'Send File Via Hidden Network: \n'
-                                                  'Link Needs to be starts with [https://]\n'
+                                                  'Link Needs to be Starts With [https://]\n'
                                                   '\tpython -m filecrypter --m send --file test.txt --link https://[HOST_IP]:443 --c 4'
                                                   '\n'
 
